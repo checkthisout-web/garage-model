@@ -157,9 +157,9 @@
   <a class="backlink" href="index.html">&larr; All Models</a>
 
   <div class="titleblock">
-    <div class="eyebrow">Preliminary Massing Model · Standard Doors</div>
+    <div class="eyebrow">Preliminary Massing Model · Standard Doors + Man Door</div>
     <h1>2-Car Garage — 24'×26'</h1>
-    <div class="sub">Gable roof, 6:12 pitch · 9'×7' doors · For design discussion with builder<br>Verify all dimensions, setbacks &amp; codes on site</div>
+    <div class="sub">Gable roof, 6:12 pitch · 9'×7' doors + 3'×6'8" man door (left wall)<br>Verify all dimensions, setbacks &amp; codes on site</div>
   </div>
 
   <div class="specpanel" id="specpanel">
@@ -170,6 +170,9 @@
     <hr>
     <div class="row"><span>Doors (2)</span><span>9'-0" × 7'-0"</span></div>
     <div class="row"><span>Center pier</span><span>2'-0"</span></div>
+    <hr>
+    <div class="row"><span>Man door</span><span>3'-0" × 6'-8"</span></div>
+    <div class="row"><span>Location</span><span>Left wall</span></div>
   </div>
 
   <div class="hint">Drag to rotate<br>Scroll / pinch to zoom</div>
@@ -206,7 +209,10 @@ const DIM = {
   pier: 2,
   margin: 2,
   eaveOverhang: 1,
-  rakeOverhang: 0.6
+  rakeOverhang: 0.6,
+  manDoorW: 3,
+  manDoorH: 6 + 8/12,
+  manDoorInset: 5
 };
 DIM.halfW = DIM.width / 2;
 DIM.ridgeH = DIM.wallH + (DIM.pitchRise / DIM.pitchRun) * DIM.halfW;
@@ -281,6 +287,7 @@ function init() {
   buildLights();
   buildGround();
   buildGarage();
+  buildManDoor();
   buildDimensions();
 
   updateCameraFromSpherical();
@@ -550,6 +557,63 @@ function ridgeFeetInches() {
   const ft = Math.floor(totalIn / 12);
   const inch = totalIn % 12;
   return `${ft}'-${inch}"`;
+}
+
+function buildManDoor() {
+  const { halfW, halfD, manDoorW, manDoorH, manDoorInset } = DIM;
+  const g = new window.THREE.Group();
+
+  const x = -halfW; // left wall
+  const z = halfD - manDoorInset; // set back from the front face
+
+  // Door slab (flat panel on the wall face)
+  const door = new window.THREE.Mesh(
+    new window.THREE.BoxGeometry(0.12, manDoorH, manDoorW),
+    MAT.door()
+  );
+  door.position.set(x - 0.03, manDoorH / 2, z);
+  door.castShadow = true;
+  g.add(door);
+
+  // Small glass lite near the top
+  const lite = new window.THREE.Mesh(
+    new window.THREE.BoxGeometry(0.05, manDoorH * 0.22, manDoorW * 0.55),
+    new window.THREE.MeshStandardMaterial({ color: 0x9FD8E0, roughness: 0.25, metalness: 0.1 })
+  );
+  lite.position.set(x - 0.1, manDoorH * 0.78, z);
+  g.add(lite);
+
+  // Doorknob
+  const knob = new window.THREE.Mesh(
+    new window.THREE.SphereGeometry(0.06, 12, 12),
+    new window.THREE.MeshStandardMaterial({ color: 0xD8D2B8, roughness: 0.35, metalness: 0.6 })
+  );
+  knob.position.set(x - 0.12, manDoorH * 0.42, z + manDoorW / 2 - 0.35);
+  g.add(knob);
+
+  // Concrete landing / stoop just outside the door
+  const stoopDepth = 3;
+  const stoop = new window.THREE.Mesh(
+    new window.THREE.BoxGeometry(stoopDepth, 0.3, manDoorW + 1.2),
+    new window.THREE.MeshStandardMaterial({ color: 0xB9B9B0, roughness: 0.95 })
+  );
+  stoop.position.set(x - 0.15 - stoopDepth / 2, 0.15, z);
+  stoop.receiveShadow = true;
+  g.add(stoop);
+
+  // Dimension label
+  const label = makeLabel(`${manDoorW}'x${ftIn(manDoorH)} MAN DOOR`, 22);
+  label.position.set(x - 1.6, manDoorH + 0.9, z);
+  g.add(label);
+
+  scene.add(g);
+}
+
+function ftIn(totalFeet) {
+  const totalIn = Math.round(totalFeet * 12);
+  const ft = Math.floor(totalIn / 12);
+  const inch = totalIn % 12;
+  return inch === 0 ? `${ft}'-0"` : `${ft}'-${inch}"`;
 }
 
 // ---------- Camera / controls ----------
